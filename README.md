@@ -238,7 +238,7 @@ Fastest way to install `kubectx`, `kubens` and `fzf`
 
 --- 
     
-# `kubectl` output paramete
+# `kubectl` output parameter
 
 ## Examples
 
@@ -270,30 +270,6 @@ kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{@.metadata.name
 
 JSONPATH='{range .items[*]}{"\n---\n"}{@.metadata.name}:{"\n"}{range @.status.conditions[*]}{@.type}={@.status}; {"\n"}{end}{end}' && kubectl get nodes -o jsonpath="$JSONPATH"
 -->
-
----
-
-# Extend `kubectl` with plugins
-
-* Enable kubectl plugin manager [krew](https://github.com/GoogleContainerTools/krew)
-  ```bash
-  # add to ~/.bashrc
-  #
-  # export KREW_ROOT=/path/to/krew-folder
-  export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
-  ```
-
-* Plugin management
-```
-kubectl-krew search
-kubectl-krew insatll view-secret
-```
-
-* Example: decode base64 secrets
-```
-kubectl get secret
-kubectl view-secret default-token-976rc namespace
-```
 
 ---
 
@@ -444,6 +420,85 @@ k get service web-deployment --export -o yaml > svc.export.yaml
 ---
 
 
+# Extend `kubectl` with plugins
+
+* Enable kubectl plugin manager [krew](https://github.com/GoogleContainerTools/krew)
+  ```bash
+  # add to ~/.bashrc
+  #
+  # export KREW_ROOT=/path/to/krew-folder
+  export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+  ```
+
+* Plugin management
+```
+kubectl-krew search
+kubectl-krew insatll view-secret
+```
+
+* Example: decode base64 secrets
+```
+kubectl get secret
+kubectl view-secret default-token-976rc namespace
+```
+
+---
+
+# Use `kubectl` the fuzzy way with [fubectl](https://github.com/kubermatic/fubectl)
+
+* bash/zsh wrapper based on `kubectl`, `jq` and `fzf`
+* Interactive search and interaction with Kubernetes objects
+    * support's also CRD's
+    * No in-cluster installation needed
+
+* Installation
+    ```bash
+    curl -LO https://rawgit.com/kubermatic/fubectl/master/fubectl.source
+    # add to `~/.bashrc`
+    [ -f <path-to>/fubectl.source ] && source <path-to>/fubectl.source  
+    ```
+
+----
+
+* Usage of fubectl:
+    ```bash
+    khelp
+    # [ka] get all pods in namespace
+    # [kall] get all pods in cluster
+    # [kwa] watch all pods in the current namespace
+    # [kwall] watch all pods in cluster
+    # [kp] open kubernetes dashboard with proxy
+    # [kwatch] watch resource
+    # [kdebug] start debugging in cluster
+    # [kube_ctx_name] get the current context
+    # [kube_ctx_namespace] get current namespace
+    # [kget] get a resource by its YAML
+    # [ked] edit a resource by its YAML
+    # [kdes] describe resource
+    # [kdel] delete resource
+    # [klog] fetch log from container
+    # [kex] execute command in container
+    # [kfor] port-forward a container port to your local machine
+    # [ksearch] search for string in resources
+    # [kcl] context list
+    # [kcs] context set
+    # [kcns] context set default namespace
+    # [kwns] watch pods in a namespace
+    ```
+
+---
+
+# In-Cluster Tools
+!= need a running components in the cluster
+
+## [k9s](https://github.com/derailed/k9s)
+* provides a curses based terminal UI
+
+## [popeye](https://github.com/derailed/popeye)
+* Kubernetes Cluster Sanitizer
+* Find errors
+
+--- 
 
 # Troubleshooting
 
@@ -505,18 +560,6 @@ k get service web-deployment --export -o yaml > svc.export.yaml
 
 ---
 
-# In-Cluster Tools
-!= need a running components in the cluster
-
-## [k9s](https://github.com/derailed/k9s)
-* provides a curses based terminal UI
-
-## [popeye](https://github.com/derailed/popeye)
-* Kubernetes Cluster Sanitizer
-* Find errors
-
---- 
-
 *References:*
 
 * https://kubernetes.io/docs/reference/kubectl/cheatsheet
@@ -537,4 +580,8 @@ k get service web-deployment --export -o yaml > svc.export.yaml
 # Something to add?
 
 > Open a pull request 😉
+
+**Thx for your attention!**
+
+
 
