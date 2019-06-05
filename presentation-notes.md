@@ -33,3 +33,6 @@ Images by [jp2a](http://manpages.ubuntu.com/manpages/precise/en/man1/jp2a.1.html
 jp2a pics/k8s-only.jpg --chars=" ...+" --width=30 -i
 ```` 
 
+### get headings
+
+`grep '^# ' README.md`

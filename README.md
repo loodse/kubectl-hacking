@@ -40,7 +40,7 @@ $ kubectl hacking
 
 # My journey to Kubernetes
 Java programmer -> Testautomation  -> Docker -> OpenShift -> Kubernetes        
-```
+```bash
                               ..              
                               ..              
                            ........           
@@ -67,7 +67,7 @@ Java programmer -> Testautomation  -> Docker -> OpenShift -> Kubernetes
 
 ---
 
-# `kubectl` - what's his aim?
+# `kubectl` - what's this about?
 
 * Main command line tool for interact with Kubernetes writen in Golang
     * Maintained by SIG API Machinery (part of official community)
@@ -91,32 +91,37 @@ Java programmer -> Testautomation  -> Docker -> OpenShift -> Kubernetes
 # basic bash config
 
 * Enable bash [auto completion](https://kubernetes.io/docs/reference/kubectl/cheatsheet/#kubectl-autocomplete) (update compatible)
-```bash
-# add to ~/.bashrc
-source <(kubectl completion bash)
-alias k=kubectl
-complete -F __start_kubectl k
-```
+  ```bash
+  # add to ~/.bashrc
+  source <(kubectl completion bash)
+  alias k=kubectl
+  complete -F __start_kubectl k
+  ```
 
 * [powerline go](https://github.com/justjanne/powerline-go)
     1. Install binary `go get -v  -u github.com/justjanne/powerline-go` 
     2. ensure powerline-go is available in the path: `export PATH=$PATH:$GOPATH/bin`
     3. config `~/.bashrc` -> `source ./powerline-go/.bashrc`
 
-
 ---
 
-# basic bash config
+# `kubectl` help?
 
-* Enable kubectl plugin manager [krew](https://github.com/GoogleContainerTools/krew)
-```bash
-# add to ~/.bashrc
-#
-# export KREW_ROOT=/path/to/krew-folder
-export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
-```
+- `kubectl [command] --help` is very helpful!
+- `kubectl explain [object][.field][...]` information about spec fields!
+- `kubectl api-resources` shows available objects - with CRDs!
 
-
+## Examples
+  ```bash
+  kubectl get --help
+  #options for all commands
+  kubectl options
+  
+  kubectl explain pod.spec.containers.ports
+  kubectl explain svc.spec.type
+  
+  kubectl api-resources | grep apps
+  ```
 
 ---
 
@@ -144,18 +149,92 @@ export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
       # set the used default namespace
       kubectl config set-context --current --namespace=default
       ```
-    
 
 ---
 
 # kubeconfig - tooling
 
+Special thx to [Ahmet Alp Balkan](https://github.com/ahmetb)
+
+## Installation 
+
+Fastest way to install `kubectx`, `kubens` and `fzf`
+
+  ```bash
+  cd $HOME/bin
+  wget https://raw.githubusercontent.com/ahmetb/kubectx/master/kubectx
+  wget https://raw.githubusercontent.com/ahmetb/kubectx/master/kubens
+  chmod 755 kubectx kubens
+  wget https://github.com/junegunn/fzf-bin/releases/download/0.18.0/fzf-0.18.0-linux_amd64.tgz
+  tar xf fzf-0.18.0-linux_amd64.tgz
+  # → kubectx, kubens, fzf
+  ```
+---                   
+                      
+# kubeconfig - tooling
+
+## Usage `kubectx`, `kubens`
+
+* fast context switching
+  ```bash
+  # fuzzy search list
+  kubectx
+  # direct select e.g. `default` context 
+  kubectx default
+  # select last context
+  kubectx -
+  ```
+
+* fast namespace switching
+  ```bash
+  # fuzzy search list
+  kubens
+  # direct select e.g. `kube-system` namespace 
+  kubens kube-system
+  # select last namespace
+  kubens -
+  ```
+---                   
+                      
+# kubeconfig - tooling
+
+## Use fuzzy search `fzf`
+
+* Search a file the fuzzy way
+  ```bash
+  fzf
+  # with preview
+  fzf --preview 'cat {}' 
+  ```
+
+* Key binding → add `./fzf/.fzf.bash` to your `~/.bashrc`
+  ```bash
+  [ -f ~/.fzf.bash ] && source ~/.fzf.bash
+  ```
+
+* Pipe `kubectl` output, e.g. logs, config
+
+  ```bash
+  k logs POD_NAME | fzf
+  k get pod POD_NAME -o yaml | fzf
+  ```
+
 --- 
 
     
-# auto completion
+# `kubectl` output parameter
 
-# output parameter
+---
+
+# Extend `kubectl`
+
+* Enable kubectl plugin manager [krew](https://github.com/GoogleContainerTools/krew)
+  ```bash
+  # add to ~/.bashrc
+  #
+  # export KREW_ROOT=/path/to/krew-folder
+  export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
+  ```
 
 # plugins
 
@@ -166,31 +245,31 @@ expose
 
 ---
 
-# Basic cluster nformation
+# Basic cluster information
 
-What cluster do I use?
+* What cluster do I use?
 
-```
-kubectl cluster-info
-```
+  ```
+  kubectl cluster-info
+  ```
 
-Whats about the components?
-```bash
-kubectl get componentstatuses
-kubectl get cs
-```
+* Whats about the components?
+  ```bash
+  kubectl get componentstatuses
+  kubectl get cs
+  ```
 
-Troubleshoot the whole cluster
-```bash
-# download the state
-kubectl cluster-info dump --output-directory=./output/cluster-state
-
-# diagnose it
-tree ./output/cluster-state
-
-grep -r Error output/cluster-state
-grep -C 5 -r Error output/cluster-state
-```
+* Troubleshoot the whole cluster
+  ```bash
+  # download the state
+  kubectl cluster-info dump --output-directory=./output/cluster-state
+  
+  # diagnose it
+  tree ./output/cluster-state
+  
+  grep -r Error output/cluster-state
+  grep -C 5 -r Error output/cluster-state
+  ```
 ---
 
 # kustomize
