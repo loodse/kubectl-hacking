@@ -120,7 +120,8 @@ Java programmer -> Testautomation  -> Docker -> OpenShift -> Kubernetes
   kubectl explain pod.spec.containers.ports
   kubectl explain svc.spec.type
   
-  kubectl api-resources | grep apps
+  kubectl api-resources --api-group=apps
+  kubectl api-resources -o wide
   ```
 
 ---
@@ -224,9 +225,55 @@ Fastest way to install `kubectx`, `kubens` and `fzf`
     
 # `kubectl` output parameter
 
+- `--v=9` Debug [verbosity](https://kubernetes.io/docs/reference/kubectl/cheatsheet/#kubectl-output-verbosity-and-debugging) `0-10`
+
+- `-o wide`, `-o yaml` shows more important information about an object
+- `--show-labels` and `--label-columns=k8s-app` structure your output
+- `-l k8s-app=my-app`, `--field-selector=status.phase=Running` select objects
+
+- `-o json | jq 'expresion'` combine JSON and [jq](https://github.com/stedolan/jq) to get more details (useful for scripting)
+- `jsonpath=JSONPATH_EXP` powerful one line helper to get multiple valuesx of a json output
+
+- `kubectl describe OBJECT` shows information and events
+
+--- 
+    
+# `kubectl` output paramete
+
+## Examples
+
+```bash
+# all runnings pods
+k get pod --field-selector=status.phase=Running
+ 
+# node kernel version
+k get nodes -o json | jq '.items[].status.nodeInfo.kernelVersion' -r
+
+# all used images
+kubectl get pods --all-namespaces \
+  -o jsonpath='{range .items[*]}{@.metadata.name}{" "}{@.spec.containers[*].image}{"\n"}{end}'
+
+# Check which nodes are ready
+JSONPATH='{range .items[*]}{"\n---\n"}{@.metadata.name}: 
+{"\n"}{range @.status.conditions[*]}{@.type}={@.status}; {"\n"}{end}{end}' \
+ && kubectl get nodes -o jsonpath="$JSONPATH"
+
+# troubleshoot node state
+kubectl describe node NODE_NAME
+
+```
+
+<!--
+Note: commands without linebreaks
+
+kubectl get pods --all-namespaces -o jsonpath='{range .items[*]}{@.metadata.name}{" "}{@.spec.containers[*].image}{"\n"}{end}'
+
+JSONPATH='{range .items[*]}{"\n---\n"}{@.metadata.name}:{"\n"}{range @.status.conditions[*]}{@.type}={@.status}; {"\n"}{end}{end}' && kubectl get nodes -o jsonpath="$JSONPATH"
+-->
+
 ---
 
-# Extend `kubectl`
+# Extend `kubectl` with plugins
 
 * Enable kubectl plugin manager [krew](https://github.com/GoogleContainerTools/krew)
   ```bash
@@ -236,12 +283,135 @@ Fastest way to install `kubectx`, `kubens` and `fzf`
   export PATH="${KREW_ROOT:-$HOME/.krew}/bin:$PATH"
   ```
 
-# plugins
+* Plugin management
+```
+kubectl-krew search
+kubectl-krew insatll view-secret
+```
 
-# quick deployments
+* Example: decode base64 secrets
+```
+kubectl get secret
+kubectl view-secret default-token-976rc namespace
+```
 
-run
-expose
+---
+
+# Quick wins - let `kubectl` help you!
+
+## use `run` for resource creation
+
+* `--image=image` Docker image
+* `--env="key=value"` environment variable(s)
+* `--port=port` exposing port of container
+* `--replicas=replicas` count of replicas
+* `--label="myapp=app1"` add some label(s)
+
+* `--restart` trigger different kind of object creation:
+  ```bash
+  kubectl run # without flag creates a deployment
+  kubectl run --restart=Never  # creates a Pod
+  kubectl run --restart=OnFailure # creates a job
+  kubectl run --restart=OnFailure -schedule="* * * * *" # creates a cronjob
+  ```
+* `run ... -- argument` pass the arguments directly to the container
+  ```bash                     
+  # start a simple web image and test it with bussy box                    s
+  kubectl run --image=loodse/demo-www --port 80 web-deployment
+  kubectl run --image=busybox --restart=Never --rm -it -- bash
+  # ... inside the conainer: wget $WEB_DEPLOYMENT_SERVICE_HOST -O -
+  ```
+
+---
+
+# Quick wins - let `kubectl` help you!
+
+## use `expose` for service creation
+
+Can reference pod (po), service (svc), replicationcontroller (rc), deployment (deploy), replicaset (rs).
+
+* `--port` listing port to match at referenced resource
+* `--type` type of Service: `ClusterIP` (default), `NodePort`, `LoadBalancer`, `ExternalName`
+* `--traget-port` port at the service
+* `--selector` specify label selector
+ 
+```bash
+k expose deployment web-deployment --type=NodePort --port=80
+k expose deployment web-deployment --type=LoadBalancer --port=80
+
+k get nodes -o wide
+k get nodes --selector=kubernetes.io/role!=master \
+  -o jsonpath={.items[0].status.addresses[?\(@.type==\"ExternalIP\"\)].address}
+```
+* Combine with `port-forward` for quick testing or debugging
+    * can target `pod`, `deployment`, `service`
+    * use `localport:remoteport` for port mapping 
+```bash
+k port-forward svc/web-deployment 8080:80 &
+curl localhost:8080
+```
+
+<!--
+Note: commands without linebreaks
+kubectl get nodes --selector=kubernetes.io/role!=master -o jsonpath={.items[0].status.addresses[?\(@.type==\"ExternalIP\"\)].address}
+-->
+
+---
+
+# Quick wins - let `kubectl` help you!
+
+## create templates
+
+* `--dry-run` combined with `-o yaml` and `--restart` creates a template for common resource
+  ```bash
+  # create a deployment yaml file
+  kubectl run --image=loodse/demo-www --port 80 --dry-run -o yaml web-template > dep.yaml
+
+  # job with 10 sleep 
+  kubectl run --image=busybox --restart=OnFailure --dry-run -o yaml job -- /bin/sleep 10 > job.yaml
+  ```
+
+* `--export` get a pod's YAML without cluster specific information
+```bash
+#deployment
+k get deployment web-deployment -o yaml --export > dep.export.yaml
+vim dep.export.yaml 
+k apply -f dep.export.yaml   
+
+#service
+k get service web-deployment --export -o yaml > svc.export.yaml
+```
+*Note:* You can use `k apply -f FOLDER` for applying multi manifests!
+
+---
+
+# Quick wins - let `kubectl` help you!
+
+## Modify resources
+
+* Use inplace editor functionality
+    * `KUBE_EDITOR` sets the local editor 
+    * `kubectl edit TYP OBJECTobject` open in cluster resource
+
+* Use `apply` for mutable objects, `replace` for immutable objects. 
+    ```bash
+    kubectl apply -f dep.yaml
+    # delete resource and recreates it
+    kubectl replace --force -f pod.yaml
+    ``` 
+* Use scaling functions
+    * `k autoscale deployment foo --min=2 --max=10` add [HPA](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)
+    * `k scale deployment --replicas=10 web-deployment` scales up
+
+* Manipulate current objects, e.g. the `image` value
+  ```bash
+  # use set for common modification
+  k set image deployment/web-deployment web-deployment=loodse/demo-www
+  # use patch for all other
+  # Update a container's image; spec.containers[*].name is required because it's a merge key
+  kubectl patch pod/podname -p \
+   '{"spec":{"containers":[{"name":"web-deployment","image":"loodse/demo-www"}]}}'
+  ```
 
 ---
 
@@ -270,9 +440,68 @@ expose
   grep -r Error output/cluster-state
   grep -C 5 -r Error output/cluster-state
   ```
+
 ---
 
-# kustomize
+
+
+# Troubleshooting
+
+- Take a look for objects in state `Pending`, `Error`, `CrashLoopBackOff`
+
+- Use `port-forward` to test different connections, e.g. `service` or `pod`
+
+- Use prepared debug container for e.g. network debugging
+    ```bash
+    kubectl run --image=amouat/network-utils --restart=Never --rm -it -- bash
+    ``` 
+
+- `top` for resource usage, requires [metrics-server](https://github.com/kubernetes-incubator/metrics-server)
+    ```bash
+    kubectl top node
+    kubectl top pod   
+    ``` 
+- Reproduce the event and stream all matching logs, e.g. with label name=myLabel
+    * `kubectl logs -f -l name=myLabel --all-containers`
+    
+- `exec` into running container
+    * `kubectl exec my-pod -- ls -la /`
+    * `kubectl exec my-pod -it -- sh`
+    
+
+
+<!-- TODO: add kustomize -->
+
+---
+
+# Cluster Management by [Cluster API](https://github.com/kubernetes-sigs/cluster-api)
+
+* Manage Cluster's by CRDs in depedent of the provider (cloud/on-prem) 
+* Currently mostly used machine creation, see as e.g. [machine-controller](https://github.com/kubermatic/machine-controller) implementations
+    * Used by e.g. HA cluster management tool [kubeOne](https://github.com/kubermatic/kubeone)
+* Immutable machine objects handle cluster nodes similar to pods
+    * Deployment -> ReplicaSet -> Pod -> Container
+    * MachineDeployment -> MachineSet -> Machine -> Node
+    ```bash
+    # see the machine definition
+    k describe machine -n kube-system MACHINE_NAME
+    kubectl get md,ms,ma,node -n kube-system
+    
+    # update e.g. kubernetes version, machine size, ...
+    k edit machinedeployment
+    
+    # machine to node reference:
+    k get machine -n kube-system \
+      -o jsonpath='{range .items[*]}{@.metadata.name}{" >> "}{@.status.nodeRef.name}{"\n"}{end}}'
+    ```
+
+---
+
+# Manage VMs with [kubevirt](https://github.com/kubevirt/kubevirt)
+
+* New open source project to manage virtual Machines
+* Approach to manage VMs *inside* of kubernetes
+* Example: https://github.com/kubevirt/demo/blob/master/manifests/vm.yaml 
 
 ---
 
@@ -285,6 +514,15 @@ expose
 ## [popeye](https://github.com/derailed/popeye)
 * Kubernetes Cluster Sanitizer
 * Find errors
+
+--- 
+
+*References:*
+
+* https://kubernetes.io/docs/reference/kubectl/cheatsheet
+* https://kubectl.docs.kubernetes.io
+* https://medium.com/@nassim.kebbani/how-to-beat-kubernetes-ckad-certification-c84bff8d61b1
+* https://www.freecodecamp.org/news/how-to-set-up-a-serious-kubernetes-terminal-dd07cab51cd4
 
 ---
 
