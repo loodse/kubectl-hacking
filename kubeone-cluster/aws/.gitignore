@@ -1,0 +1,6 @@
+.aws-key
+.terraform
+terraform.tfstate*
+tf.json
+*kubeconfig
+*.tar.gz
