@@ -21,18 +21,20 @@ patat:
 ```bash
 $ kubectl hacking
 
- _  __     _                          _            
-| |/ /   _| |__   ___ _ __ _ __   ___| |_ ___  ___ 
-| ' / | | | '_ \ / _ \ '__| '_ \ / _ \ __/ _ \/ __|
-| . \ |_| | |_) |  __/ |  | | | |  __/ ||  __/\__ \
-|_|\_\__,_|_.__/ \___|_|  |_| |_|\___|\__\___||___/
-                                                   
- __  __           _                 __  __             _      _     
-|  \/  | ___  ___| |_ _   _ _ __   |  \/  |_   _ _ __ (_) ___| |__  
-| |\/| |/ _ \/ _ \ __| | | | '_ \  | |\/| | | | | '_ \| |/ __| '_ \ 
-| |  | |  __/  __/ |_| |_| | |_) | | |  | | |_| | | | | | (__| | | |
-|_|  |_|\___|\___|\__|\__,_| .__/  |_|  |_|\__,_|_| |_|_|\___|_| |_|
-                           |_|                                      
+    ____                ___               ____                
+   |  _ \  _____   __  / _ \ _ __  ___   / ___|___  _ __      
+   | | | |/ _ \ \ / / | | | | '_ \/ __| | |   / _ \| '_ \     
+   | |_| |  __/\ V /  | |_| | |_) \__ \ | |__| (_) | | | |    
+   |____/ \___| \_/    \___/| .__/|___/  \____\___/|_| |_|    
+                            |_|                               
+                                                              
+                 ____            _ _                          
+                | __ )  ___ _ __| (_)_ __                     
+                |  _ \ / _ \ '__| | | '_ \                    
+                | |_) |  __/ |  | | | | | |                   
+                |____/ \___|_|  |_|_|_| |_|                   
+            
+                                              
 
 ```
 
@@ -72,7 +74,7 @@ Java programmer -> Testautomation  -> Docker -> OpenShift -> Kubernetes
 * Main command line tool for interact with Kubernetes writen in Golang
     * Maintained by SIG API Machinery (part of official community)
     * Source code: https://github.com/kubernetes/kubernetes/tree/master/pkg/kubectl
-    * Uses `curl` - check e. g. `kubectl get pod -v 10`
+    * Uses REST HTTPS calls
     * Caches results under `~/.kube/cache/` 
   
 * Other clients
@@ -84,7 +86,10 @@ Java programmer -> Testautomation  -> Docker -> OpenShift -> Kubernetes
     curl --cert userbob.pem --key userBob-key.pem \
        --cacert /path/to/ca.pem \
        https://k8sServer:6443/api/v1/pods
-    ```
+     
+    # as helper use:
+    kubectl get pod -v 10
+    ``` 
 
 ---
 
@@ -98,7 +103,7 @@ Java programmer -> Testautomation  -> Docker -> OpenShift -> Kubernetes
   complete -F __start_kubectl k
   ```
 
-* [powerline go](https://github.com/justjanne/powerline-go)
+* beautify your bash prompt -> [powerline go](https://github.com/justjanne/powerline-go) 
     1. Install binary `go get -v  -u github.com/justjanne/powerline-go` 
     2. ensure powerline-go is available in the path: `export PATH=$PATH:$GOPATH/bin`
     3. config `~/.bashrc` -> `source ./powerline-go/.bashrc`
@@ -137,7 +142,7 @@ Java programmer -> Testautomation  -> Docker -> OpenShift -> Kubernetes
     * useful to manage multiple cluster
     * merge multiple config files
     ```bash
-    kubectl --kubeconfig=conf1:conf2 config view --flatten > merged.conf
+    KUBECONFIG=conf1:conf2 kubectl config view --flatten > merged.conf
     ```
 
 * Configures your current working environment. 
@@ -275,7 +280,7 @@ JSONPATH='{range .items[*]}{"\n---\n"}{@.metadata.name}:{"\n"}{range @.status.co
 
 # Quick wins - let `kubectl` help you!
 
-## use `run` for resource creation
+## use `run` for resource creation (deprecated)
 
 * `--image=image` Docker image
 * `--env="key=value"` environment variable(s)
@@ -292,12 +297,33 @@ JSONPATH='{range .items[*]}{"\n---\n"}{@.metadata.name}:{"\n"}{range @.status.co
   ```
 * `run ... -- argument` pass the arguments directly to the container
   ```bash                     
-  # start a simple web image and test it with bussy box                    s
+  # start a simple web image and test it with bussy box
   kubectl run --image=loodse/demo-www --port 80 web-deployment
   kubectl run --image=busybox --restart=Never --rm -it -- bash
   # ... inside the conainer: wget $WEB_DEPLOYMENT_SERVICE_HOST -O -
   ```
 
+------
+
+# Quick wins - let `kubectl` help you!
+
+## new `create` for resource creation
+
+```bash
+kubectl create 
+clusterrole          deployment           priorityclass        secret
+clusterrolebinding   job                  quota                service
+configmap            namespace            role                 serviceaccount
+cronjob              poddisruptionbudget  rolebinding
+```
+
+* `--image=image` Docker image
+* ... less options see `kubectl create OBJECT --help`
+
+Example
+```bash
+kubectl create deployment web-deployment --image=loodse/demo-www
+```
 ---
 
 # Quick wins - let `kubectl` help you!
@@ -338,10 +364,11 @@ kubectl get nodes --selector=kubernetes.io/role!=master -o jsonpath={.items[0].s
 
 ## create templates
 
-* `--dry-run` combined with `-o yaml` and `--restart` creates a template for common resource
+* `--dry-run` combined with `-o yaml` and `run --restart` or `create` creates a template for common resource
   ```bash
   # create a deployment yaml file
   kubectl run --image=loodse/demo-www --port 80 --dry-run -o yaml web-template > dep.yaml
+  kubectl create deployment web-template --image=loodse/demo-www --dry-run -o yaml > dep.yaml
 
   # job with 10 sleep 
   kubectl run --image=busybox --restart=OnFailure --dry-run -o yaml job -- /bin/sleep 10 > job.yaml
@@ -357,7 +384,6 @@ k apply -f dep.export.yaml
 #service
 k get service web-deployment --export -o yaml > svc.export.yaml
 ```
-*Note:* You can use `k apply -f FOLDER` for applying multi manifests!
 
 ---
 
@@ -367,9 +393,10 @@ k get service web-deployment --export -o yaml > svc.export.yaml
 
 * Use inplace editor functionality
     * `KUBE_EDITOR` sets the local editor 
-    * `kubectl edit TYP OBJECTobject` open in cluster resource
+    * `kubectl edit TYP OBJECT` open in cluster resource
 
-* Use `apply` for mutable objects, `replace` for immutable objects. 
+* Use `apply` for mutable objects, `replace` for immutable objects. *Note:* You can use `-f FOLDER` for using multi manifests!
+
     ```bash
     kubectl apply -f dep.yaml
     # delete resource and recreates it
@@ -379,11 +406,21 @@ k get service web-deployment --export -o yaml > svc.export.yaml
     * `k autoscale deployment foo --min=2 --max=10` add [HPA](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/)
     * `k scale deployment --replicas=10 web-deployment` scales up
 
+---
+
+# Quick wins - let `kubectl` help you!
+
+## Modify resources
+
 * Manipulate current objects, e.g. the `image` value
   ```bash
   # use set for common modification
   k set image deployment/web-deployment web-deployment=loodse/demo-www
-  # use patch for all other
+  k set env deployment/web-deployment TEST=val
+
+  # use patch for all other, e.g. service type
+  kubectl patch svc/web-deployment -p '{"spec":{"type":"LoadBalancer"}}' 
+
   # Update a container's image; spec.containers[*].name is required because it's a merge key
   kubectl patch pod/podname -p \
    '{"spec":{"containers":[{"name":"web-deployment","image":"loodse/demo-www"}]}}'
@@ -488,18 +525,6 @@ kubectl view-secret default-token-976rc namespace
 
 ---
 
-# In-Cluster Tools
-!= need a running components in the cluster
-
-## [k9s](https://github.com/derailed/k9s)
-* provides a curses based terminal UI
-
-## [popeye](https://github.com/derailed/popeye)
-* Kubernetes Cluster Sanitizer
-* Find errors
-
---- 
-
 # Troubleshooting
 
 - Take a look for objects in state `Pending`, `Error`, `CrashLoopBackOff`
@@ -529,6 +554,20 @@ kubectl view-secret default-token-976rc namespace
 
 ---
 
+# Cluster Inspection Tools
+++ need no running components in the cluster
+
+## [`k9s`](https://github.com/derailed/k9s)
+
+* provides a curses based terminal UI
+* interactive view similar to `htop`
+
+## [`popeye`](https://github.com/derailed/popeye)
+* Kubernetes Cluster Sanitizer
+* Find errors and warnings
+
+---
+
 # Cluster Management by [Cluster API](https://github.com/kubernetes-sigs/cluster-api)
 
 * Manage Cluster's by CRDs in depedent of the provider (cloud/on-prem) 
@@ -540,7 +579,7 @@ kubectl view-secret default-token-976rc namespace
     ```bash
     # see the machine definition
     k describe machine -n kube-system MACHINE_NAME
-    kubectl get md,ms,ma,node -n kube-system
+    k get machinedeployment,machineset,machine,node -n kube-system
     
     # update e.g. kubernetes version, machine size, ...
     k edit machinedeployment
@@ -560,15 +599,6 @@ kubectl view-secret default-token-976rc namespace
 
 ---
 
-*References:*
-
-* https://kubernetes.io/docs/reference/kubectl/cheatsheet
-* https://kubectl.docs.kubernetes.io
-* https://medium.com/@nassim.kebbani/how-to-beat-kubernetes-ckad-certification-c84bff8d61b1
-* https://www.freecodecamp.org/news/how-to-set-up-a-serious-kubernetes-terminal-dd07cab51cd4
-
----
-
 # Questions?
 
 > I'm happy to answer!
@@ -583,5 +613,15 @@ kubectl view-secret default-token-976rc namespace
 
 **Thx for your attention!**
 
+---
+
+*References:*
+
+* https://kubernetes.io/docs/reference/kubectl/cheatsheet
+* https://kubectl.docs.kubernetes.io
+* https://medium.com/@nassim.kebbani/how-to-beat-kubernetes-ckad-certification-c84bff8d61b1
+* https://www.freecodecamp.org/news/how-to-set-up-a-serious-kubernetes-terminal-dd07cab51cd4
+
+---
 
 
