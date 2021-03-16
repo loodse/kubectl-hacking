@@ -64,7 +64,7 @@ Java programmer -> Testautomation  -> Docker -> OpenShift -> Kubernetes
 
 # `kubectl` - what's this about?
 
-* Main command line tool to interact with Kubernetes writen in Golang
+* Main command line tool to interact with Kubernetes written in Golang
     * Maintained by SIG API Machinery (part of official community)
     * Source code: https://github.com/kubernetes/kubernetes/tree/master/pkg/kubectl
     * Uses REST HTTPS calls
