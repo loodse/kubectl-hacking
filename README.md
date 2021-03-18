@@ -227,8 +227,8 @@ Special thx to [Ahmet Alp Balkan](https://github.com/ahmetb)
 - `-l k8s-app=my-app`, `--field-selector=status.phase=Running` select objects
 - `-A` (new) using all namespaces
 
-- `-o json | jq 'expresion'` combine JSON and [jq](https://github.com/stedolan/jq) to get more details (useful for scripting)
-- `jsonpath=JSONPATH_EXP` powerful one line helper to get multiple valuesx of a json output
+- `-o json | jq 'expression'` combine JSON and [jq](https://github.com/stedolan/jq) to get more details (useful for scripting)
+- `jsonpath=JSONPATH_EXP` powerful one line helper to get multiple values of a json output
 
 - `kubectl describe OBJECT` shows information and events
 
